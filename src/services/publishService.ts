@@ -1,32 +1,40 @@
 import { Site } from "@azure/arm-appservice/esm/models";
-import fs from "fs";
 import Serverless from "serverless";
 import { BaseService } from "./baseService";
-import { CoreToolsService } from "./coreToolsService";
 import { FunctionAppService } from "./functionAppService";
+import { SupportedRuntimeLanguage, FunctionAppOS } from "../models/serverless";
+import { configConstants } from "../config";
+import { AzureBlobStorageService } from "./azureBlobStorageService";
 
 export class PublishService extends BaseService {
-
   private functionAppService: FunctionAppService;
+  private blobService: AzureBlobStorageService;
 
   public constructor(serverless: Serverless, options: Serverless.Options, functionAppService: FunctionAppService) {
     super(serverless, options);
     this.functionAppService = functionAppService;
+    this.blobService = new AzureBlobStorageService(serverless, options);
   }
 
   public async publish(functionApp: Site, functionZipFile: string) {
-    await this.windowsPublish(functionApp, functionZipFile);
+    switch (this.config.provider.os) {
+      case FunctionAppOS.LINUX:
+        await this.linuxPublish(functionApp);
+        break;
+      case FunctionAppOS.WINDOWS:
+        await this.windowsPublish(functionApp, functionZipFile);
+        break;
+    }
 
-    // if (this.configService.isLinuxTarget()) {
-    //   await this.linuxPublish(functionApp);
-    // } else {
-    //   await this.windowsPublish(functionApp, functionZipFile);
-    // }
-  }
+    switch (this.config.provider.functionRuntime.language) {
+      case SupportedRuntimeLanguage.NODE:
 
-  private async windowsPublish(functionApp: Site, functionZipFile: string) {
-    this.log("Deploying serverless functions...");
-    await this.uploadZippedArtifactToFunctionApp(functionApp, functionZipFile);
+        break;
+      case SupportedRuntimeLanguage.PYTHON:
+
+        break;
+    }
+
     this.log("Deployed serverless functions:")
     const serverlessFunctions = this.serverless.service.getAllFunctions();
     const deployedFunctions = await this.functionAppService.listFunctions(functionApp);
@@ -45,44 +53,23 @@ export class PublishService extends BaseService {
   }
 
   private async linuxPublish(functionApp: Site) {
-    await CoreToolsService.publish(this.serverless, functionApp.name);
+    this.log("Updating function app setting to run from external package...");
+    await this.blobService.initialize();
+
+    const sasUrl = await this.blobService.generateBlobSasTokenUrl(
+      this.config.provider.deployment.container,
+      this.artifactName
+    );
+    const response = await this.functionAppService.updateFunctionAppSetting(
+      functionApp,
+      configConstants.runFromPackageSetting,
+      sasUrl
+    );
+    await this.functionAppService.syncTriggers(functionApp, response.properties);
   }
 
-  private async uploadZippedArtifactToFunctionApp(functionApp: Site, functionZipFile: string) {
-    const scmDomain = this.getScmDomain(functionApp);
-
-    this.log(`Deploying zip file to function app: ${functionApp.name}`);
-
-    if (!(functionZipFile && fs.existsSync(functionZipFile))) {
-      throw new Error("No zip file found for function app");
-    }
-
-    this.log(`-> Deploying service package @ ${functionZipFile}`);
-
-    // https://github.com/projectkudu/kudu/wiki/Deploying-from-a-zip-file-or-url
-    const requestOptions = {
-      method: "POST",
-      uri: `https://${scmDomain}/api/zipdeploy/`,
-      json: true,
-      headers: {
-        Authorization: `Bearer ${await this.getAccessToken()}`,
-        Accept: "*/*",
-        ContentType: "application/octet-stream",
-      }
-    };
-
-    await this.sendFile(requestOptions, functionZipFile);
-    this.log("-> Function package uploaded successfully");
-  }
-
-  /**
-   * Retrieves the SCM domain from the list of enabled domains within the app
-   * Note: The SCM domain exposes additional API calls from the standard REST APIs.
-   * @param functionApp The function app / web site
-   */
-  private getScmDomain(functionApp: Site) {
-    return functionApp.enabledHostNames.find((hostName: string) => {
-      return hostName.includes(".scm.") && hostName.endsWith(".azurewebsites.net");
-    });
+  private async windowsPublish(functionApp: Site, functionZipFile: string) {
+    this.log("Deploying serverless functions...");
+    await this.functionAppService.uploadZippedArtifactToFunctionApp(functionApp, functionZipFile);
   }
 }

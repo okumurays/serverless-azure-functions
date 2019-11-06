@@ -11,7 +11,6 @@ import { Utils } from "../shared/utils";
 import { ArmService } from "./armService";
 import { AzureBlobStorageService } from "./azureBlobStorageService";
 import { BaseService } from "./baseService";
-import configConstants from "../config";
 import { PublishService } from "./publishService";
 
 export class FunctionAppService extends BaseService {
@@ -55,22 +54,6 @@ export class FunctionAppService extends BaseService {
     const deleteFunctionUrl = `${this.baseUrl}${functionApp.id}/functions/${functionName}?api-version=2016-08-01`;
 
     return await this.sendApiRequest("DELETE", deleteFunctionUrl);
-  }
-
-  public async syncTriggers(functionApp: Site, properties: { [propertyName: string]: string }) {
-    Guard.null(functionApp);
-
-    this.log("Syncing function triggers");
-
-    const syncTriggersUrl = `${this.baseUrl}/subscriptions/${this.subscriptionId}` +
-      `/resourceGroups/${this.resourceGroup}/providers/Microsoft.Web/sites/${functionApp.name}` +
-      "/syncfunctiontriggers?api-version=2016-08-01";
-
-    try {
-      return await this.sendApiRequest("POST", syncTriggersUrl, { data: { properties } });
-    } catch (err) {
-      throw new Error(`Error syncing function app triggers: ${err}`)
-    }
   }
 
   public async cleanUp(functionApp: Site) {
@@ -155,10 +138,8 @@ export class FunctionAppService extends BaseService {
     // Uploaded to blob storage as artifact for future reference
     await this.uploadZippedArtifactToBlobStorage(functionZipFile);
 
-    await this.publish(functionApp, functionZipFile);
-
-    // const publishService = new PublishService(this.serverless, this.options, this);
-    // await publishService.publish(functionApp, functionZipFile)
+    const publishService = new PublishService(this.serverless, this.options, this);
+    await publishService.publish(functionApp, functionZipFile);
   }
 
   /**
@@ -258,39 +239,18 @@ export class FunctionAppService extends BaseService {
     };
   }
 
-  private async publish(functionApp: Site, functionZipFile: string) {
-    this.log("Deploying serverless functions...");
-    if (this.config.provider.deployment.external) {
-      this.log("Updating function app setting to run from external package...");
-      const sasUrl = await this.blobService.generateBlobSasTokenUrl(
-        this.config.provider.deployment.container,
-        this.artifactName
-      );
-      const response = await this.updateFunctionAppSetting(
-        functionApp,
-        configConstants.runFromPackageSetting,
-        sasUrl
-      );
-      await this.syncTriggers(functionApp, response.properties);
-    } else {
-      await this.uploadZippedArtifactToFunctionApp(functionApp, functionZipFile);
+  public async syncTriggers(functionApp: Site, properties: { [propertyName: string]: string }) {
+    Guard.null(functionApp);
+
+    this.log("Syncing function triggers");
+
+    const syncTriggersUrl = `${this.baseUrl}${functionApp.id}/syncfunctiontriggers?api-version=2016-08-01`;
+
+    try {
+      return await this.sendApiRequest("POST", syncTriggersUrl, { data: { properties } });
+    } catch (err) {
+      throw new Error(`Error syncing function app triggers: ${err}`)
     }
-
-    this.log("Deployed serverless functions:")
-    const serverlessFunctions = this.serverless.service.getAllFunctions();
-    const deployedFunctions = await this.listFunctions(functionApp);
-
-    // List functions that are part of the serverless yaml config
-    deployedFunctions.forEach((functionConfig) => {
-      if (serverlessFunctions.includes(functionConfig.name)) {
-        const httpConfig = this.getFunctionHttpTriggerConfig(functionApp, functionConfig);
-
-        if (httpConfig) {
-          const method = httpConfig.methods[0].toUpperCase();
-          this.log(`-> ${functionConfig.name}: [${method}] ${httpConfig.url}`);
-        }
-      }
-    });
   }
 
   /**
@@ -304,16 +264,6 @@ export class FunctionAppService extends BaseService {
       this.config.provider.deployment.container,
       this.artifactName,
     );
-  }
-
-  /**
-   * Gets a short lived admin token used to retrieve function keys
-   */
-  private async getAuthKey(functionApp: Site) {
-    const adminTokenUrl = `${this.baseUrl}${functionApp.id}/functions/admin/token?api-version=2016-08-01`;
-    const response = await this.sendApiRequest("GET", adminTokenUrl);
-
-    return response.data.replace(/"/g, "");
   }
 
   /**
