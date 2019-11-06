@@ -41,17 +41,10 @@ export class FunctionAppService extends BaseService {
 
   public async getMasterKey(functionApp?: Site) {
     functionApp = functionApp || await this.get();
-    const adminToken = await this.getAuthKey(functionApp);
-    const keyUrl = `https://${functionApp.defaultHostName}/admin/host/systemkeys/_master`;
+    const keyUrl = `${this.baseUrl}${functionApp.id}/host/default/listkeys?api-version=2016-08-01`;
+    const response = await this.sendApiRequest("POST", keyUrl);
 
-    const response = await this.sendApiRequest("GET", keyUrl, {
-      json: true,
-      headers: {
-        "Authorization": `Bearer ${adminToken}`
-      }
-    });
-
-    return response.data.value;
+    return response.data.masterKey;
   }
 
   public async deleteFunction(functionApp: Site, functionName: string) {
@@ -162,8 +155,10 @@ export class FunctionAppService extends BaseService {
     // Uploaded to blob storage as artifact for future reference
     await this.uploadZippedArtifactToBlobStorage(functionZipFile);
 
-    const publishService = new PublishService(this.serverless, this.options, this);
-    await publishService.publish(functionApp, functionZipFile)
+    await this.publish(functionApp, functionZipFile);
+
+    // const publishService = new PublishService(this.serverless, this.options, this);
+    // await publishService.publish(functionApp, functionZipFile)
   }
 
   /**

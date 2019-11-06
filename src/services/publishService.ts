@@ -15,14 +15,16 @@ export class PublishService extends BaseService {
   }
 
   public async publish(functionApp: Site, functionZipFile: string) {
-    if (this.configService.isLinuxTarget()) {
-      await this.linuxPublish(functionApp);
-    } else {
-      await this.windowsPublish(functionApp, functionZipFile);
-    }
+    await this.windowsPublish(functionApp, functionZipFile);
+
+    // if (this.configService.isLinuxTarget()) {
+    //   await this.linuxPublish(functionApp);
+    // } else {
+    //   await this.windowsPublish(functionApp, functionZipFile);
+    // }
   }
 
-  private async windowsPublish(functionApp: Site, functionZipFile: string) {    
+  private async windowsPublish(functionApp: Site, functionZipFile: string) {
     this.log("Deploying serverless functions...");
     await this.uploadZippedArtifactToFunctionApp(functionApp, functionZipFile);
     this.log("Deployed serverless functions:")

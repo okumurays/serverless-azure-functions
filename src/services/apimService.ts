@@ -323,6 +323,7 @@ export class ApimService extends BaseService {
    */
   private async ensureFunctionAppKeys(functionApp: Site): Promise<PropertyContract> {
     this.log("-> Deploying API keys");
+
     try {
       const masterKey = await this.functionAppService.getMasterKey(functionApp);
       const keyName = `${this.serviceName}-key`;

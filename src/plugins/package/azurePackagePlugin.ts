@@ -18,26 +18,27 @@ export class AzurePackagePlugin extends AzureBasePlugin {
       "after:package:finalize": this.finalize.bind(this),
     };
     const { provider } = this.serverless.service;
-    this.isLinuxTarget = provider["os"] === FunctionAppOS.LINUX || provider.runtime.includes("python")
+    //this.isLinuxTarget = provider["os"] === FunctionAppOS.LINUX || provider.runtime.includes("python")
+    this.isLinuxTarget = provider.runtime.includes("python")
     if (this.isLinuxTarget) {
       /**
        * Replacing lifecycle event to build a deployment artifact with our own
-       * 
-       * Without the delete of the pre-existing hook, setting the hook attempts 
+       *
+       * Without the delete of the pre-existing hook, setting the hook attempts
        * to push the function to an array of functions. We just want to replace it.
-       * 
+       *
        * IMPORTANT: Currently, azure-functions-core-tools does not support publishing
        * an existing package. Therefore, the package created from this step is never
        * actually used. This also means rollback will not work. Keeping this in
        * here so that the package can still be archived in blob storage.
-       * 
-       * Communication has been made to the dev team, the feature request has been 
+       *
+       * Communication has been made to the dev team, the feature request has been
        * created in GitHub:
-       * 
+       *
        * https://github.com/Azure/azure-functions-core-tools/issues/1589
-       * 
+       *
        * and the team has triaged the feature to be added to the tool in future sprints.
-       * 
+       *
        * When that feature is added, we can invoke the publish command of core tools
        * to publish this package: see services/coreToolsService.ts
        */
@@ -59,7 +60,7 @@ export class AzurePackagePlugin extends AzureBasePlugin {
     }
     packageService.cleanUpServerlessDir();
     await packageService.createBindings();
-    
+
     this.bindingsCreated = true;
 
     return Promise.resolve();

@@ -1,35 +1,53 @@
 {
-    "version": "0.2.0",
-    "configurations": [
-      {
-        "type": "node",
-        "request": "launch",
-        "name": "Jest All",
-        "program": "${workspaceFolder}/node_modules/.bin/jest",
-        "args": ["--runInBand"],
-        "console": "integratedTerminal",
-        "internalConsoleOptions": "neverOpen",
-        "disableOptimisticBPs": true,
-        "windows": {
-          "program": "${workspaceFolder}/node_modules/jest/bin/jest",
-        }
-      },
-      {
-        "type": "node",
-        "request": "launch",
-        "name": "Jest Current File",
-        "program": "${workspaceFolder}/node_modules/.bin/jest",
-        "args": [
-          "${fileBasenameNoExtension}",
-          "--config",
-          "jest.config.js"
-        ],
-        "console": "integratedTerminal",
-        "internalConsoleOptions": "neverOpen",
-        "disableOptimisticBPs": true,
-        "windows": {
-          "program": "${workspaceFolder}/node_modules/jest/bin/jest",
-        }
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "Jest All",
+      "program": "${workspaceFolder}/node_modules/.bin/jest",
+      "args": [
+        "--runInBand"
+      ],
+      "console": "integratedTerminal",
+      "internalConsoleOptions": "neverOpen",
+      "disableOptimisticBPs": true,
+      "windows": {
+        "program": "${workspaceFolder}/node_modules/jest/bin/jest",
       }
-    ]
-  }
+    },
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "Jest Current File",
+      "program": "${workspaceFolder}/node_modules/.bin/jest",
+      "args": [
+        "${fileBasenameNoExtension}",
+        "--config",
+        "jest.config.js"
+      ],
+      "console": "integratedTerminal",
+      "internalConsoleOptions": "neverOpen",
+      "disableOptimisticBPs": true,
+      "windows": {
+        "program": "${workspaceFolder}/node_modules/jest/bin/jest",
+      }
+    },
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "sls",
+      "program": "C:\\Users\\wabrez\\AppData\\Roaming\\npm\\node_modules\\serverless\\bin\\serverless",
+      "args": [
+        "deploy",
+        "--prefix wb-lnx-js",
+        "--config serverless-azure.yml"
+      ],
+      "cwd": "D:\\dev\\multicloud-demo",
+      "console": "integratedTerminal",
+      "runtimeArgs": [
+        "--preserve-symlinks"
+      ]
+    },
+  ]
+}
