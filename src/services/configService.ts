@@ -164,11 +164,6 @@ export class ConfigService {
     if (!config.provider.os) {
       config.provider.os = os;
     }
-
-    // For all linux deployments ALWAYS run from external package
-    if (config.provider.os === FunctionAppOS.LINUX) {
-      config.provider.deployment.external = true;
-    }
   }
 
   /**
@@ -235,6 +230,8 @@ export class ConfigService {
       ...configConstants.deploymentConfig,
       ...deployment,
       external: (os === FunctionAppOS.LINUX),
+      // Remote build is only currently supported on Linux
+      enableRemoteBuild: (os === FunctionAppOS.LINUX && functionRuntime.language === SupportedRuntimeLanguage.PYTHON)
     }
 
     this.serverless.variables[constants.variableKeys.providerConfig] = config.provider;

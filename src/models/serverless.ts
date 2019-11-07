@@ -26,6 +26,7 @@ export interface DeploymentConfig {
   rollback?: boolean;
   container?: string;
   external?: boolean;
+  enableRemoteBuild?: boolean;
 }
 
 export interface ServerlessAzureProvider {

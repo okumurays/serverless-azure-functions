@@ -6,6 +6,7 @@ export const configConstants = {
     container: "deployment-artifacts",
     rollback: true,
     external: false,
+    enableRemoteBuild: false
   },
   naming: {
     maxLength: {

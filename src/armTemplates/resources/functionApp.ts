@@ -200,7 +200,6 @@ export class FunctionAppResource implements ArmResourceTemplateGenerator {
     };
     const { functionRuntime, os } = config.provider;
     const isLinuxRuntime = os === FunctionAppOS.LINUX;
-    const enableRemoteBuild = isLinuxRuntime && functionRuntime.language === SupportedRuntimeLanguage.PYTHON;
 
     const params: FunctionAppParams = {
       functionAppName: {
@@ -229,7 +228,7 @@ export class FunctionAppResource implements ArmResourceTemplateGenerator {
         value: resourceConfig.extensionVersion,
       },
       functionAppEnableRemoteBuild: {
-        value: enableRemoteBuild
+        value: config.provider.deployment.enableRemoteBuild
       }
     };
 
