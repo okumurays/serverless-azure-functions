@@ -2,8 +2,10 @@ import semver from "semver";
 import Serverless from "serverless";
 import Service from "serverless/classes/Service";
 import configConstants from "../config";
-import { DeploymentConfig, FunctionRuntime, ServerlessAzureConfig, 
-  ServerlessAzureFunctionConfig, SupportedRuntimeLanguage, FunctionAppOS } from "../models/serverless";
+import {
+  DeploymentConfig, FunctionRuntime, ServerlessAzureConfig,
+  ServerlessAzureFunctionConfig, SupportedRuntimeLanguage, FunctionAppOS
+} from "../models/serverless";
 import { constants } from "../shared/constants";
 import { Guard } from "../shared/guard";
 import { Utils } from "../shared/utils";
@@ -150,7 +152,7 @@ export class ConfigService {
     if (!providerRegion || providerRegion === awsRegion) {
       config.provider.region = this.serverless.service.provider["location"] || region;
     }
- 
+
     if (!config.provider.stage) {
       config.provider.stage = stage;
     }
@@ -161,6 +163,11 @@ export class ConfigService {
 
     if (!config.provider.os) {
       config.provider.os = os;
+    }
+
+    // For all linux deployments ALWAYS run from external package
+    if (config.provider.os === FunctionAppOS.LINUX) {
+      config.provider.deployment.external = true;
     }
   }
 
@@ -215,12 +222,12 @@ export class ConfigService {
     config.provider.resourceGroup = (
       this.getOption("resourceGroup", config.provider.resourceGroup)
     ) || AzureNamingService.getResourceName(options);
-    
+
     const functionRuntime = this.getFunctionRuntime(runtime);
     if (functionRuntime.language === SupportedRuntimeLanguage.PYTHON && os !== FunctionAppOS.LINUX) {
       this.serverless.cli.log("Python functions can ONLY run on Linux Function Apps. Switching now");
       config.provider.os = FunctionAppOS.LINUX;
-    } 
+    }
 
     config.provider.functionRuntime = functionRuntime;
 
@@ -271,7 +278,7 @@ export class ConfigService {
       "nodejs": SupportedRuntimeLanguage.NODE,
       "python": SupportedRuntimeLanguage.PYTHON
     }[languageInput];
-    
+
     return {
       language,
       version

@@ -45,6 +45,11 @@ interface FunctionAppParams extends DefaultArmParams {
    */
   functionAppRunFromPackage?: ArmParameter;
   /**
+   * Whether or not to enable remote build for linux consumption plans
+   * Automatically installs NPM or PyPi packages during deployment
+   */
+  functionAppEnableRemoteBuild: ArmParameter;
+  /**
    * Name of storage account used by function app
    */
   storageAccountName?: ArmParameter;
@@ -85,7 +90,7 @@ export class FunctionAppResource implements ArmResourceTemplateGenerator {
         defaultValue: false,
         type: ArmParamType.Bool
       },
-      linuxFxVersion : {
+      linuxFxVersion: {
         defaultValue: "",
         type: ArmParamType.String,
       },
@@ -96,6 +101,10 @@ export class FunctionAppResource implements ArmResourceTemplateGenerator {
       functionAppExtensionVersion: {
         defaultValue: "~2",
         type: ArmParamType.String
+      },
+      functionAppEnableRemoteBuild: {
+        defaultValue: false,
+        type: ArmParamType.Bool
       },
       storageAccountName: {
         defaultValue: "",
@@ -163,6 +172,14 @@ export class FunctionAppResource implements ArmResourceTemplateGenerator {
                 {
                   "name": "APPINSIGHTS_INSTRUMENTATIONKEY",
                   "value": "[reference(concat('microsoft.insights/components/', parameters('appInsightsName'))).InstrumentationKey]"
+                },
+                {
+                  "name": "ENABLE_ORYX_BUILD",
+                  "value": "[parameters('functionAppEnableRemoteBuild')]"
+                },
+                {
+                  "name": "SCM_DO_BUILD_DURING_DEPLOYMENT",
+                  "value": "[parameters('functionAppEnableRemoteBuild')]"
                 }
               ]
             },
@@ -183,6 +200,7 @@ export class FunctionAppResource implements ArmResourceTemplateGenerator {
     };
     const { functionRuntime, os } = config.provider;
     const isLinuxRuntime = os === FunctionAppOS.LINUX;
+    const enableRemoteBuild = isLinuxRuntime && functionRuntime.language === SupportedRuntimeLanguage.PYTHON;
 
     const params: FunctionAppParams = {
       functionAppName: {
@@ -209,9 +227,12 @@ export class FunctionAppResource implements ArmResourceTemplateGenerator {
       },
       functionAppExtensionVersion: {
         value: resourceConfig.extensionVersion,
+      },
+      functionAppEnableRemoteBuild: {
+        value: enableRemoteBuild
       }
     };
-    
+
     return params as unknown as ArmParameters;
   }
 
@@ -223,6 +244,6 @@ export class FunctionAppResource implements ArmResourceTemplateGenerator {
       return configConstants.dockerImages[language][major]
     } catch (e) {
       throw new Error(`Runtime ${language} ${version} not currently supported by Linux Function Apps`);
-    }    
+    }
   }
 }
